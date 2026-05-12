@@ -66,7 +66,7 @@ async function handlePropose(_req: ProposeRequest, ctx: RequestContext): Promise
     type: "quote",
     datasetId: env.datasetId,
     datasetDescription:
-      "Confidential dataset — gated by Story Protocol license, unlocked via a CDR threshold-encrypted vault.",
+      "Confidential dataset — gated by a Story license, unlocked via a CDR threshold-encrypted vault.",
     openingPrice: randomQuote(),
     currency: "IP",
     network: "story-aeneid",

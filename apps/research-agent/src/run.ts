@@ -104,7 +104,7 @@ async function main() {
   log("vaultUuid:", finalized.vaultUuid!);
   log("ipTxHash:", finalized.ipTxHash!);
 
-  step(6, "Mint license token (Story Protocol)");
+  step(6, "Mint license token (Story)");
   const mint = await mintLicense({
     rpcUrl: env.rpcUrl,
     buyerPrivateKey: env.researchPrivateKey,

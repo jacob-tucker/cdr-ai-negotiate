@@ -12,9 +12,9 @@
   },
   "pnpm": {
     "overrides": {
-      "@piplabs/cdr-contracts": "file:../cdr-sdk/packages/contracts/piplabs-cdr-contracts-0.1.1.tgz",
-      "@piplabs/cdr-crypto": "file:../cdr-sdk/packages/crypto/piplabs-cdr-crypto-0.1.1.tgz",
-      "@piplabs/cdr-sdk": "file:../cdr-sdk/packages/sdk/piplabs-cdr-sdk-0.1.1.tgz"
+      "@piplabs/cdr-sdk": "file:../cdr-sdk/packages/sdk",
+      "@piplabs/cdr-contracts": "file:../cdr-sdk/packages/contracts",
+      "@piplabs/cdr-crypto": "file:../cdr-sdk/packages/crypto"
     }
   }
 }

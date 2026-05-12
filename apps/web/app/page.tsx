@@ -16,7 +16,7 @@ export default function Home() {
       </nav>
 
       <section className="hero">
-        <p className="eyebrow">CDR · A2A · AP2 · Story Protocol</p>
+        <p className="eyebrow">CDR · A2A · AP2 · Story</p>
         <h1>
           Agent-native <em>encrypted data</em> markets.
         </h1>

@@ -1,6 +1,6 @@
 # CDR × A2A — Agent-Native Encrypted Data Markets
 
-Two autonomous agents that discover each other over **A2A**, negotiate a price live, settle on-chain by registering a fresh **Story Protocol IP asset + license terms**, mint a license token, and unlock encrypted data through a **CDR vault**. Everything — including the IP asset and license terms — is created at runtime during the negotiation.
+Two autonomous agents that discover each other over **A2A**, negotiate a price live, settle on-chain by registering a fresh **Story IP asset + license terms**, mint a license token, and unlock encrypted data through a **CDR vault**. Everything — including the IP asset and license terms — is created at runtime during the negotiation.
 
 ## What you need to provide
 
@@ -17,14 +17,17 @@ Optional pricing knobs (all caps capped at 1 IP):
 
 ## One-time setup
 
-```bash
-# 1. Clone + build the CDR SDK into ../cdr-sdk and pack tarballs
-./scripts/bootstrap-cdr-sdk.sh
+The CDR SDK isn't on npm yet — clone it as a sibling of this repo and build it. The workspace's `pnpm.overrides` points `@piplabs/cdr-sdk` (and its two internal deps) at those built directories.
 
-# 2. Install workspace deps
+```bash
+# 1. Clone the CDR SDK as a sibling of this repo, then build it.
+git clone https://github.com/piplabs/cdr-sdk.git --branch 0.1.1 --depth 1 ../cdr-sdk
+( cd ../cdr-sdk && pnpm install && pnpm build )
+
+# 2. Install workspace deps.
 pnpm install
 
-# 3. Copy + fill .env
+# 3. Copy + fill .env.
 cp .env.example .env
 ```
 
@@ -49,7 +52,7 @@ You'll see the 7-step flow:
 3. **Counter-Offer** — Research Agent counters lower; Data Owner accepts
 4. **Sign Mandate** — Research Agent signs an AP2 mandate at the agreed price
 5. **Finalize Deal** — Data Owner registers a fresh IP asset with commercial license terms priced at the agreed amount, creates a CDR vault gated by license-token ownership, and returns the new `ipId` / `licenseTermsId` / `vaultUuid`
-6. **Mint License** — Research Agent calls `mintLicenseTokens` on Story Protocol; the agreed price is paid on-chain
+6. **Mint License** — Research Agent calls `mintLicenseTokens` on Story; the agreed price is paid on-chain
 7. **Decrypt** — Research Agent calls `CDR.read`; validators verify ownership and return partial decryptions; the secret is recombined client-side
 
 ## Web one-pager
@@ -78,5 +81,5 @@ packages/
 
 - **A2A 0.3** — agent discovery via `/.well-known/agent-card.json`, JSON-RPC `message/send`
 - **AP2-style mandate** — signed JSON: payer authorizes ≤ N IP to merchant for a specific action
-- **Story Protocol** — `registerIpAsset` (mint NFT + register IP + attach PIL terms) and `mintLicenseTokens`
+- **Story** — `registerIpAsset` (mint NFT + register IP + attach PIL terms) and `mintLicenseTokens`
 - **CDR** — TDH2 threshold-encrypted vault with `LicenseReadCondition` gating reads to license-token holders
