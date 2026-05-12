@@ -1,0 +1,20 @@
+{
+  "name": "cdr-ai-negotiate",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "data-owner": "pnpm --filter @cdr-demo/data-owner-agent dev",
+    "research": "pnpm --filter @cdr-demo/research-agent dev",
+    "web": "pnpm --filter @cdr-demo/web dev",
+    "demo": "pnpm --filter @cdr-demo/research-agent demo"
+  },
+  "pnpm": {
+    "overrides": {
+      "@piplabs/cdr-contracts": "file:../cdr-sdk/packages/contracts/piplabs-cdr-contracts-0.1.1.tgz",
+      "@piplabs/cdr-crypto": "file:../cdr-sdk/packages/crypto/piplabs-cdr-crypto-0.1.1.tgz",
+      "@piplabs/cdr-sdk": "file:../cdr-sdk/packages/sdk/piplabs-cdr-sdk-0.1.1.tgz"
+    }
+  }
+}
