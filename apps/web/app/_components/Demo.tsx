@@ -41,7 +41,7 @@ const STEPS: Step[] = [
   {
     n: "01",
     title: "Discover",
-    flow: "r2o",
+    flow: "o2r",
     proto: "a2a",
     method: "GET /.well-known/agent-card.json",
     chain: false,
@@ -69,8 +69,9 @@ const STEPS: Step[] = [
         <span className="v">"CDR Data Owner Agent"</span>,
         {"\n  "}
         <span className="k">"skills"</span>: [
-        <span className="v">"quote-access"</span>,{" "}
-        <span className="v">"request-access"</span>]
+        <span className="v">"propose-terms"</span>,{" "}
+        <span className="v">"counter-offer"</span>,{" "}
+        <span className="v">"finalize-deal"</span>]
         {"\n"}
         {"}"}
       </>
@@ -78,21 +79,21 @@ const STEPS: Step[] = [
   },
   {
     n: "02",
-    title: "Quote",
-    flow: "r2o",
+    title: "Propose Terms",
+    flow: "o2r",
     proto: "a2a",
-    method: "skill · quote-access",
+    method: "skill · propose-terms",
     chain: false,
     what: (
       <>
-        Research Agent asks for terms via an <Kw p="a2a">A2A</Kw> skill call.
-        Data Owner replies with the dataset, license terms, and price.
+        Research Agent opens negotiation. Data Owner replies with the dataset
+        description and an <b>opening price</b> — no IP asset exists yet, just
+        a quote.
       </>
     ),
     outcome: (
       <>
-        Terms set: <b>1 IP</b> mints a license token for IP{" "}
-        <span className="mono">0x3Aa5…4925</span>.
+        Seller asks <b>0.87 IP</b> for confidential dataset access.
       </>
     ),
     code: (
@@ -102,13 +103,11 @@ const STEPS: Step[] = [
         <span className="k">"datasetId"</span>:{" "}
         <span className="v">"health-demo-v1"</span>,
         {"\n  "}
-        <span className="k">"price"</span>: <span className="v">"1 IP"</span>,
+        <span className="k">"openingPrice"</span>:{" "}
+        <span className="v">"0.87"</span>,
         {"\n  "}
-        <span className="k">"ipId"</span>:{" "}
-        <span className="n">"0x3Aa5…4925"</span>,
-        {"\n  "}
-        <span className="k">"licenseTermsId"</span>:{" "}
-        <span className="v">"1"</span>
+        <span className="k">"currency"</span>:{" "}
+        <span className="v">"IP"</span>
         {"\n"}
         {"}"}
       </>
@@ -116,6 +115,40 @@ const STEPS: Step[] = [
   },
   {
     n: "03",
+    title: "Counter-Offer",
+    flow: "r2o",
+    proto: "a2a",
+    method: "skill · counter-offer",
+    chain: false,
+    what: (
+      <>
+        Research Agent counters with a lower price. Data Owner checks it's
+        within its floor and accepts. The agreed price is{" "}
+        <b>guaranteed ≤ 1 IP</b>.
+      </>
+    ),
+    outcome: (
+      <>
+        Deal at <b>0.61 IP</b>. No on-chain action yet — just two agents
+        agreeing.
+      </>
+    ),
+    code: (
+      <>
+        <span className="s">→</span> {"{"}{" "}
+        <span className="k">"proposedPrice"</span>:{" "}
+        <span className="v">"0.61"</span> {"}"}
+        {"\n"}
+        <span className="s">←</span> {"{"}{" "}
+        <span className="k">"type"</span>:{" "}
+        <span className="v">"accept-counter"</span>,{" "}
+        <span className="k">"agreedPrice"</span>:{" "}
+        <span className="v">"0.61"</span> {"}"}
+      </>
+    ),
+  },
+  {
+    n: "04",
     title: "Sign Mandate",
     flow: "self-research",
     proto: "ap2",
@@ -123,14 +156,14 @@ const STEPS: Step[] = [
     chain: false,
     what: (
       <>
-        Research Agent creates and signs a Google <Kw p="ap2">AP2</Kw> mandate
-        — an off-chain authorization scoped to this exact purchase, signed
-        with its wallet.
+        Research Agent signs an <Kw p="ap2">AP2</Kw> mandate authorizing
+        exactly the agreed amount for this purchase. Off-chain, wallet-signed
+        proof of intent.
       </>
     ),
     outcome: (
       <>
-        Signed, verifiable proof of intent. <b>Nothing on-chain yet.</b>
+        Signed mandate authorizing <b>0.61 IP</b>. <b>Still nothing on-chain.</b>
       </>
     ),
     code: (
@@ -143,8 +176,10 @@ const STEPS: Step[] = [
         <span className="k">"merchantAgent"</span>:{" "}
         <span className="n">"0xOwn…f7b1"</span>,
         {"\n  "}
-        <span className="k">"amount"</span>: <span className="v">"1"</span>,{" "}
-        <span className="k">"currency"</span>: <span className="v">"IP"</span>,
+        <span className="k">"amount"</span>:{" "}
+        <span className="v">"0.61"</span>,{" "}
+        <span className="k">"currency"</span>:{" "}
+        <span className="v">"IP"</span>,
         {"\n  "}
         <span className="k">"allowedAction"</span>:{" "}
         <span className="v">"mint-license-and-grant-cdr-access"</span>,
@@ -157,23 +192,73 @@ const STEPS: Step[] = [
     ),
   },
   {
-    n: "04",
+    n: "05",
+    title: "Finalize Deal",
+    flow: "r2o",
+    proto: "a2a",
+    method: "skill · finalize-deal",
+    alsoTouches: ["ap2", "story", "cdr"],
+    chain: true,
+    chainNote:
+      "registerIpAsset (mints NFT + attaches PIL terms) + CDR allocate + write",
+    what: (
+      <>
+        Research Agent presents the <Kw p="ap2">AP2</Kw> mandate. Data Owner
+        verifies it, then in two on-chain actions:{" "}
+        <Kw p="story">registers a new IP asset</Kw> with commercial license
+        terms priced at the agreed amount, and creates a{" "}
+        <Kw p="cdr">CDR vault</Kw> gated by license-token ownership for that IP.
+      </>
+    ),
+    outcome: (
+      <>
+        Brand-new <b>ipId</b>, <b>licenseTermsId</b>, and{" "}
+        <b>vault uuid 1077</b> — all minted just-in-time for this deal.
+      </>
+    ),
+    code: (
+      <>
+        <span className="s">→</span> {"{"}{" "}
+        <span className="k">"agreedPrice"</span>:{" "}
+        <span className="v">"0.61"</span>,{" "}
+        <span className="k">"signedMandate"</span>: … {"}"}
+        {"\n"}
+        <span className="s">←</span> {"{"}
+        {"\n  "}
+        <span className="k">"ipId"</span>:{" "}
+        <span className="n">"0x71F2…9b3c"</span>,
+        {"\n  "}
+        <span className="k">"licenseTermsId"</span>:{" "}
+        <span className="v">"248"</span>,
+        {"\n  "}
+        <span className="k">"vaultUuid"</span>:{" "}
+        <span className="v">1077</span>,
+        {"\n  "}
+        <span className="k">"ipTxHash"</span>:{" "}
+        <span className="n">"0xae3b…77d2"</span>
+        {"\n"}
+        {"}"}
+      </>
+    ),
+  },
+  {
+    n: "06",
     title: "Mint License",
     flow: "self-research",
     proto: "story",
     method: "tx · mintLicenseTokens",
     chain: true,
-    chainNote: "mintLicenseTokens · 1 IP transferred → license NFT minted",
+    chainNote: "mintLicenseTokens · 0.61 IP transferred → license NFT minted",
     what: (
       <>
-        Research Agent calls <Kw p="story">mintLicenseTokens</Kw> on{" "}
-        <Kw p="story">Story Protocol</Kw>. 1 IP is transferred on-chain; a
-        license NFT is minted to the agent.
+        Research Agent calls <Kw p="story">mintLicenseTokens</Kw> for the IP
+        the seller just registered. <b>0.61 IP</b> is paid on-chain to the
+        seller's royalty vault; a license NFT is minted to the buyer.
       </>
     ),
     outcome: (
       <>
-        Research Agent now holds <b>license token #72517</b>.
+        Research Agent now holds <b>license token #72517</b> for the new IP.
       </>
     ),
     code: (
@@ -181,12 +266,13 @@ const STEPS: Step[] = [
         <span className="s">writeContract</span>({"{"}
         {"\n  "}
         <span className="k">licensorIpId</span>:{" "}
-        <span className="n">"0x3Aa5…4925"</span>,
+        <span className="n">"0x71F2…9b3c"</span>,
         {"\n  "}
         <span className="k">licenseTermsId</span>:{" "}
-        <span className="v">1n</span>,
+        <span className="v">248n</span>,
         {"\n  "}
-        <span className="k">amount</span>: <span className="v">1</span>
+        <span className="k">maxMintingFee</span>:{" "}
+        <span className="v">parseEther("0.61")</span>
         {"\n"}
         {"}"}) <span className="s">→</span>{" "}
         <span className="k">licenseTokenId</span>:{" "}
@@ -195,52 +281,7 @@ const STEPS: Step[] = [
     ),
   },
   {
-    n: "05",
-    title: "Grant Access",
-    flow: "r2o",
-    proto: "a2a",
-    method: "skill · request-access",
-    alsoTouches: ["ap2", "cdr", "story"],
-    chain: true,
-    chainNote: "CDR allocate + write · vault 1077 created on-chain",
-    what: (
-      <>
-        Over <Kw p="a2a">A2A</Kw>, Research Agent sends the{" "}
-        <Kw p="ap2">AP2</Kw> mandate plus its license token. Data Owner
-        verifies both, then creates a <Kw p="cdr">CDR</Kw> vault on{" "}
-        <Kw p="story">Story</Kw> — gated by license-token ownership for this
-        IP.
-      </>
-    ),
-    outcome: (
-      <>
-        A new CDR vault at <b>uuid 1077</b> — readable only by holders of a
-        license token for this IP.
-      </>
-    ),
-    code: (
-      <>
-        <span className="s">→</span> {"{"}{" "}
-        <span className="k">"signedMandate"</span>: …,{" "}
-        <span className="k">"licenseTokenId"</span>:{" "}
-        <span className="v">"72517"</span> {"}"}
-        {"\n"}
-        <span className="s">←</span> {"{"}
-        {"\n  "}
-        <span className="k">"ok"</span>: <span className="v">true</span>,
-        {"\n  "}
-        <span className="k">"vaultUuid"</span>:{" "}
-        <span className="v">1077</span>,
-        {"\n  "}
-        <span className="k">"writeTx"</span>:{" "}
-        <span className="n">"0x9c1f…ab44"</span>
-        {"\n"}
-        {"}"}
-      </>
-    ),
-  },
-  {
-    n: "06",
+    n: "07",
     title: "Decrypt",
     flow: "self-research",
     proto: "cdr",

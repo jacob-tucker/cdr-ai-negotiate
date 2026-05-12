@@ -16,5 +16,7 @@ export const env = {
   dataOwnerUrl: process.env.DATA_OWNER_AGENT_URL ?? "http://localhost:3001",
   rpcUrl: need("STORY_RPC_URL"),
   researchPrivateKey: need("RESEARCH_AGENT_PRIVATE_KEY") as Hex,
-  maxBudgetIp: process.env.DATASET_PRICE_IP ?? "1",
+  // Hard cap. Counter-offer is the seller's quote × counterFactor; never exceeds maxBudgetIp.
+  maxBudgetIp: Number(process.env.RESEARCH_MAX_BUDGET_IP ?? "1"),
+  counterFactor: Number(process.env.RESEARCH_COUNTER_FACTOR ?? "0.7"),
 };

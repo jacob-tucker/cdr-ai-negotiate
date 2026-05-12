@@ -10,22 +10,32 @@ import { fetchAgentCard, sendJsonMessage } from "./a2a-client.js";
 interface QuoteReply {
   ok: boolean;
   datasetId: string;
-  ipId: Address;
-  licenseTermsId: string;
-  price: string;
-  network: string;
+  datasetDescription: string;
+  openingPrice: string;
+  currency: "IP";
   merchantAgent: Address;
   condition: string;
 }
 
-interface AccessReply {
+interface AcceptCounterReply {
   ok: boolean;
   error?: string;
+  agreedPrice: string;
+}
+
+interface FinalizeReply {
+  ok: boolean;
+  error?: string;
+  ipId?: Address;
+  licenseTermsId?: string;
   vaultUuid?: number;
-  datasetId?: string;
-  allocateTx?: string;
-  writeTx?: string;
-  licenseTokenId?: string;
+  ipTxHash?: string;
+  agreedPrice?: string;
+}
+
+interface NotifyReply {
+  ok: boolean;
+  error?: string;
 }
 
 function step(n: number, title: string) {
@@ -44,21 +54,34 @@ async function main() {
   log("name:", kleur.white(card.name));
   log("skills:", card.skills.map((s) => s.id).join(", "));
 
-  step(2, "Ask for access terms (skill: quote-access)");
-  const quote = await sendJsonMessage<QuoteReply>(card.url, { type: "quote-access" });
-  log("price:", kleur.yellow(quote.price));
-  log("ipId:", quote.ipId);
-  log("licenseTermsId:", quote.licenseTermsId);
+  step(2, "Open negotiation (skill: propose-terms)");
+  const quote = await sendJsonMessage<QuoteReply>(card.url, { type: "propose-terms" });
+  log("dataset:", quote.datasetId);
+  log("seller asks:", kleur.yellow(`${quote.openingPrice} IP`));
   log("merchantAgent:", quote.merchantAgent);
 
-  step(3, "Sign AP2 mandate authorizing the purchase");
+  step(3, "Send counter-offer (skill: counter-offer)");
+  const sellerPrice = Number(quote.openingPrice);
+  const myCounter = Math.max(0.01, Math.min(env.maxBudgetIp, sellerPrice * env.counterFactor));
+  const counterPrice = myCounter.toFixed(2);
+  log("buyer offers:", kleur.yellow(`${counterPrice} IP`));
+  const accepted = await sendJsonMessage<AcceptCounterReply>(card.url, {
+    type: "counter-offer",
+    proposedPrice: counterPrice,
+  });
+  if (!accepted.ok) throw new Error(`counter rejected: ${accepted.error}`);
+  log("seller accepts:", kleur.green(`${accepted.agreedPrice} IP`));
+
+  step(4, "Sign AP2 mandate at the agreed price");
   const mandate = newMandate({
     payerAgent: researcher.address,
     merchantAgent: quote.merchantAgent,
     purpose: `CDR access to dataset ${quote.datasetId}`,
-    ipId: quote.ipId,
-    licenseTermsId: quote.licenseTermsId,
-    amount: env.maxBudgetIp,
+    // ipId/licenseTermsId not known yet — seller registers them in step 5.
+    // Mandate scopes the payment by amount + merchant + dataset.
+    ipId: "0x0000000000000000000000000000000000000000",
+    licenseTermsId: "pending",
+    amount: accepted.agreedPrice,
     currency: "IP",
     network: "story-aeneid",
     expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -68,36 +91,47 @@ async function main() {
   log("mandateId:", mandate.mandateId);
   log("signature:", signed.signature.slice(0, 18) + "…");
 
-  step(4, "Mint license token via Story SDK (on-chain payment)");
+  step(5, "Finalize: seller registers IP + terms + vault (skill: finalize-deal)");
+  const finalized = await sendJsonMessage<FinalizeReply>(card.url, {
+    type: "finalize-deal",
+    agreedPrice: accepted.agreedPrice,
+    signedMandate: signed,
+    requesterAddress: researcher.address,
+  });
+  if (!finalized.ok) throw new Error(`finalize failed: ${finalized.error}`);
+  log("ipId:", finalized.ipId!);
+  log("licenseTermsId:", finalized.licenseTermsId!);
+  log("vaultUuid:", finalized.vaultUuid!);
+  log("ipTxHash:", finalized.ipTxHash!);
+
+  step(6, "Mint license token (Story Protocol)");
   const mint = await mintLicense({
     rpcUrl: env.rpcUrl,
     buyerPrivateKey: env.researchPrivateKey,
-    ipId: quote.ipId,
-    licenseTermsId: quote.licenseTermsId,
-    maxMintingFeeIp: env.maxBudgetIp,
+    ipId: finalized.ipId!,
+    licenseTermsId: finalized.licenseTermsId!,
+    maxMintingFeeIp: accepted.agreedPrice,
   });
   const licenseTokenId = mint.licenseTokenIds[0];
   if (!licenseTokenId) throw new Error("no license token minted");
   log("txHash:", mint.txHash);
   log("licenseTokenId:", licenseTokenId.toString());
 
-  step(5, "Present mandate + license to data-owner (skill: request-access)");
-  const access = await sendJsonMessage<AccessReply>(card.url, {
-    type: "request-access",
-    datasetId: quote.datasetId,
-    signedMandate: signed,
+  step(7, "Notify seller of mint (skill: notify-mint)");
+  const ack = await sendJsonMessage<NotifyReply>(card.url, {
+    type: "notify-mint",
     licenseTokenId: licenseTokenId.toString(),
+    ipId: finalized.ipId!,
     requesterAddress: researcher.address,
   });
-  if (!access.ok) throw new Error(`access denied: ${access.error}`);
-  log("vaultUuid:", access.vaultUuid);
-  log("allocateTx:", access.allocateTx);
+  if (!ack.ok) throw new Error(`notify failed: ${ack.error}`);
+  log("seller:", kleur.green("acknowledged"));
 
-  step(6, "Decrypt CDR vault using license token");
+  step(8, "Decrypt CDR vault using license token");
   const secret = await readLicenseGatedVault({
     rpcUrl: env.rpcUrl,
     consumerPrivateKey: env.researchPrivateKey,
-    uuid: access.vaultUuid!,
+    uuid: finalized.vaultUuid!,
     licenseTokenId: licenseTokenId,
   });
   console.log("");

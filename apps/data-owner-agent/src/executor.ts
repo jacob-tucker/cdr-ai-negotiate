@@ -9,23 +9,29 @@ import type {
 import type { Message } from "@a2a-js/sdk";
 import { verifyMandate, type SignedMandate } from "@cdr-demo/ap2-lite";
 import { createLicenseGatedVault } from "@cdr-demo/cdr";
-import { verifyLicenseOwner } from "@cdr-demo/story";
+import { registerIpAndAttachTerms, verifyLicenseOwner } from "@cdr-demo/story";
 import { env } from "./env.js";
 
-interface QuoteRequest {
-  type: "quote-access";
-  datasetId?: string;
+interface ProposeRequest {
+  type: "propose-terms";
 }
-
-interface AccessRequest {
-  type: "request-access";
-  datasetId: string;
+interface CounterRequest {
+  type: "counter-offer";
+  proposedPrice: string;
+}
+interface FinalizeRequest {
+  type: "finalize-deal";
+  agreedPrice: string;
   signedMandate: SignedMandate;
-  licenseTokenId: string;
   requesterAddress: Address;
 }
-
-type AgentRequest = QuoteRequest | AccessRequest;
+interface NotifyRequest {
+  type: "notify-mint";
+  licenseTokenId: string;
+  ipId: Address;
+  requesterAddress: Address;
+}
+type AgentRequest = ProposeRequest | CounterRequest | FinalizeRequest | NotifyRequest;
 
 function reply(ctx: RequestContext, payload: unknown): Message {
   return {
@@ -47,73 +53,113 @@ function parseRequest(ctx: RequestContext): AgentRequest | null {
   }
 }
 
-async function handleQuote(_req: QuoteRequest, ctx: RequestContext): Promise<Message> {
+function randomQuote(): string {
+  const { sellerMinPriceIp, sellerMaxPriceIp } = env;
+  const v = sellerMinPriceIp + Math.random() * (sellerMaxPriceIp - sellerMinPriceIp);
+  return (Math.round(v * 100) / 100).toFixed(2);
+}
+
+async function handlePropose(_req: ProposeRequest, ctx: RequestContext): Promise<Message> {
   const ownerAddress = privateKeyToAccount(env.ownerPrivateKey).address;
   return reply(ctx, {
     ok: true,
     type: "quote",
     datasetId: env.datasetId,
-    ipId: env.ipId,
-    licenseTermsId: env.licenseTermsId,
-    price: `${env.priceIp} IP`,
+    datasetDescription:
+      "Confidential dataset — gated by Story Protocol license, unlocked via a CDR threshold-encrypted vault.",
+    openingPrice: randomQuote(),
+    currency: "IP",
     network: "story-aeneid",
     merchantAgent: ownerAddress,
-    condition: "Mint a license token via Story SDK and present a signed AP2 mandate.",
+    condition: "Propose a counter (or accept). Then sign an AP2 mandate at the agreed price.",
   });
 }
 
-async function handleAccess(
-  req: AccessRequest,
-  ctx: RequestContext,
-): Promise<Message> {
+async function handleCounter(req: CounterRequest, ctx: RequestContext): Promise<Message> {
+  const counter = Number(req.proposedPrice);
+  if (!Number.isFinite(counter) || counter <= 0) {
+    return reply(ctx, { ok: false, error: "invalid counter offer" });
+  }
+  if (counter < env.sellerMinPriceIp) {
+    return reply(ctx, { ok: false, error: `counter ${counter} IP below floor ${env.sellerMinPriceIp} IP` });
+  }
+  if (counter > 1) {
+    return reply(ctx, { ok: false, error: "counter exceeds 1 IP cap" });
+  }
+  return reply(ctx, {
+    ok: true,
+    type: "accept-counter",
+    agreedPrice: counter.toFixed(2),
+    currency: "IP",
+  });
+}
+
+async function handleFinalize(req: FinalizeRequest, ctx: RequestContext): Promise<Message> {
   const ownerAddress = privateKeyToAccount(env.ownerPrivateKey).address;
 
+  // 1. mandate sanity checks
   const mandateCheck = await verifyMandate(req.signedMandate);
   if (!mandateCheck.valid) {
     return reply(ctx, { ok: false, error: `mandate invalid: ${mandateCheck.reason}` });
   }
   const m = req.signedMandate.mandate;
-  if (m.ipId.toLowerCase() !== env.ipId.toLowerCase()) {
-    return reply(ctx, { ok: false, error: "mandate ipId mismatch" });
-  }
-  if (m.licenseTermsId !== env.licenseTermsId) {
-    return reply(ctx, { ok: false, error: "mandate licenseTermsId mismatch" });
-  }
   if (m.merchantAgent.toLowerCase() !== ownerAddress.toLowerCase()) {
     return reply(ctx, { ok: false, error: "mandate merchantAgent mismatch" });
   }
   if (m.payerAgent.toLowerCase() !== req.requesterAddress.toLowerCase()) {
-    return reply(ctx, { ok: false, error: "requesterAddress does not match mandate" });
+    return reply(ctx, { ok: false, error: "requesterAddress does not match mandate payer" });
+  }
+  const agreed = Number(req.agreedPrice);
+  if (!Number.isFinite(agreed) || agreed <= 0 || agreed > 1) {
+    return reply(ctx, { ok: false, error: "agreedPrice must be > 0 and ≤ 1 IP" });
+  }
+  if (Number(m.amount) < agreed) {
+    return reply(ctx, { ok: false, error: "mandate amount below agreedPrice" });
   }
 
-  const ownsLicense = await verifyLicenseOwner({
+  // 2. register IP + commercial license terms on-chain.
+  // Use the buyer's original string (e.g. "0.61") — converting through Number
+  // and back via toFixed produces float-rounding artifacts (e.g. "0.680000…049")
+  // that make the on-chain fee diverge from what the buyer authorizes.
+  const registered = await registerIpAndAttachTerms({
     rpcUrl: env.rpcUrl,
-    licenseTokenId: BigInt(req.licenseTokenId),
-    expectedOwner: req.requesterAddress,
+    sellerPrivateKey: env.ownerPrivateKey,
+    mintingFeeIp: req.agreedPrice,
   });
-  if (!ownsLicense) {
-    return reply(ctx, { ok: false, error: "license token not owned by requester" });
-  }
 
+  // 3. create CDR vault gated by license-token ownership for the new IP
   const vault = await createLicenseGatedVault({
     rpcUrl: env.rpcUrl,
     ownerPrivateKey: env.ownerPrivateKey,
     ownerAddress,
-    ipId: env.ipId,
+    ipId: registered.ipId,
     secret: env.datasetSecret,
   });
 
   return reply(ctx, {
     ok: true,
-    type: "access-granted",
-    datasetId: env.datasetId,
+    type: "deal-finalized",
+    ipId: registered.ipId,
+    licenseTermsId: registered.licenseTermsId,
+    ipTxHash: registered.txHash,
     vaultUuid: vault.uuid,
     allocateTx: vault.allocateTx,
     writeTx: vault.writeTx,
-    licenseTokenId: req.licenseTokenId,
+    datasetId: env.datasetId,
+    agreedPrice: agreed.toFixed(2),
     instructions:
-      "Call readLicenseGatedVault with vaultUuid + licenseTokenId to decrypt.",
+      "Mint a license token for ipId+licenseTermsId, then call readLicenseGatedVault(vaultUuid, tokenId).",
   });
+}
+
+async function handleNotify(req: NotifyRequest, ctx: RequestContext): Promise<Message> {
+  const owns = await verifyLicenseOwner({
+    rpcUrl: env.rpcUrl,
+    licenseTokenId: BigInt(req.licenseTokenId),
+    expectedOwner: req.requesterAddress,
+  });
+  if (!owns) return reply(ctx, { ok: false, error: "license token not owned by requester" });
+  return reply(ctx, { ok: true, type: "mint-acknowledged", licenseTokenId: req.licenseTokenId });
 }
 
 export class DataOwnerExecutor implements AgentExecutor {
@@ -122,17 +168,12 @@ export class DataOwnerExecutor implements AgentExecutor {
     try {
       let msg: Message;
       if (!req) {
-        msg = reply(ctx, {
-          ok: false,
-          error: "expected JSON text part with { type: 'quote-access' | 'request-access', ... }",
-        });
-      } else if (req.type === "quote-access") {
-        msg = await handleQuote(req, ctx);
-      } else if (req.type === "request-access") {
-        msg = await handleAccess(req, ctx);
-      } else {
-        msg = reply(ctx, { ok: false, error: "unknown request type" });
-      }
+        msg = reply(ctx, { ok: false, error: "expected JSON text part with a known 'type'" });
+      } else if (req.type === "propose-terms") msg = await handlePropose(req, ctx);
+      else if (req.type === "counter-offer") msg = await handleCounter(req, ctx);
+      else if (req.type === "finalize-deal") msg = await handleFinalize(req, ctx);
+      else if (req.type === "notify-mint") msg = await handleNotify(req, ctx);
+      else msg = reply(ctx, { ok: false, error: "unknown request type" });
       bus.publish(msg);
     } catch (err) {
       bus.publish(reply(ctx, { ok: false, error: (err as Error).message }));
