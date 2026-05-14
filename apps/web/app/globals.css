@@ -93,6 +93,25 @@ a { color: inherit; text-decoration: none; }
 .topbar .tag { color: var(--muted); }
 .topbar .tag b { color: var(--text); font-weight: 500; }
 
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-bright);
+  border-radius: 100px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  transition: border-color 180ms, background 180ms, color 180ms;
+}
+.gh-link:hover {
+  border-color: var(--a2a-border);
+  background: var(--a2a-soft);
+  color: var(--a2a);
+}
+
 /* ----- hero ----- */
 
 .hero {
@@ -117,6 +136,41 @@ a { color: inherit; text-decoration: none; }
   margin: 0;
   max-width: 620px;
 }
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 100px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border-bright);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 180ms, background 180ms, color 180ms, transform 180ms;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn.primary {
+  border-color: var(--a2a-border);
+  background: var(--a2a-soft);
+  color: var(--a2a);
+}
+.btn.primary:hover {
+  border-color: var(--a2a);
+  background: rgba(94, 234, 212, 0.18);
+}
+.btn.ghost { color: var(--muted); }
+.btn.ghost:hover { color: var(--text); border-color: var(--border-bright); }
 
 /* ----- legend ----- */
 
@@ -280,48 +334,69 @@ a { color: inherit; text-decoration: none; }
 .connector .arrow-track {
   position: relative;
   width: 100%;
-  height: 2px;
-  background: var(--border-bright);
-  border-radius: 2px;
+  height: 18px;
+  background: transparent;
+  color: var(--border-bright);
 }
+
+/* the line — bold stroke, fading slightly toward the source end */
+.connector .arrow-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  border-radius: 3px;
+  transform: translateY(-50%);
+}
+.connector .arrow-track.right::before {
+  left: 0;
+  right: 10px;
+  background: linear-gradient(90deg, transparent, currentColor 15%, currentColor);
+}
+.connector .arrow-track.left::before {
+  left: 10px;
+  right: 0;
+  background: linear-gradient(90deg, currentColor, currentColor 85%, transparent);
+}
+
+/* chevron arrow head — flush with the line */
 .connector .arrow-head {
   position: absolute;
-  top: -6px;
-  width: 0; height: 0;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+  border-radius: 2px;
 }
-.connector .arrow-head.right { right: 4px; border-left: 9px solid var(--border-bright); }
-.connector .arrow-head.left  { left: 4px;  border-right: 9px solid var(--border-bright); }
+.connector .arrow-head.right {
+  right: 1px;
+  transform: translateY(-50%) rotate(45deg);
+}
+.connector .arrow-head.left {
+  left: 1px;
+  transform: translateY(-50%) rotate(-135deg);
+}
 
-.connector .arrow-track.a2a   { background: var(--a2a-border); }
-.connector .arrow-track.a2a   .arrow-head.right { border-left-color: var(--a2a); }
-.connector .arrow-track.a2a   .arrow-head.left  { border-right-color: var(--a2a); }
-.connector .arrow-track.ap2   { background: var(--ap2-border); }
-.connector .arrow-track.ap2   .arrow-head.right { border-left-color: var(--ap2); }
-.connector .arrow-track.ap2   .arrow-head.left  { border-right-color: var(--ap2); }
-.connector .arrow-track.cdr   { background: var(--cdr-border); }
-.connector .arrow-track.cdr   .arrow-head.right { border-left-color: var(--cdr); }
-.connector .arrow-track.cdr   .arrow-head.left  { border-right-color: var(--cdr); }
-.connector .arrow-track.story { background: var(--story-border); }
-.connector .arrow-track.story .arrow-head.right { border-left-color: var(--story); }
-.connector .arrow-track.story .arrow-head.left  { border-right-color: var(--story); }
+.connector .arrow-track.a2a   { color: var(--a2a); }
+.connector .arrow-track.ap2   { color: var(--ap2); }
+.connector .arrow-track.cdr   { color: var(--cdr); }
+.connector .arrow-track.story { color: var(--story); }
 
+/* pulse — bright dot that streaks along the line */
 .connector .pulse {
   position: absolute;
-  top: -3px;
-  width: 28px;
-  height: 8px;
-  border-radius: 100px;
-  filter: blur(1px);
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px currentColor, 0 0 6px currentColor, 0 0 2px #fff;
+  transform: translateY(-50%);
   opacity: 0;
 }
-.connector .arrow-track.a2a   .pulse { background: linear-gradient(90deg, transparent, var(--a2a),   transparent); }
-.connector .arrow-track.ap2   .pulse { background: linear-gradient(90deg, transparent, var(--ap2),   transparent); }
-.connector .arrow-track.cdr   .pulse { background: linear-gradient(90deg, transparent, var(--cdr),   transparent); }
-.connector .arrow-track.story .pulse { background: linear-gradient(90deg, transparent, var(--story), transparent); }
-.connector .arrow-track.right .pulse { animation: flyRight 1.4s ease-in-out infinite; }
-.connector .arrow-track.left  .pulse { animation: flyLeft  1.4s ease-in-out infinite; }
+.connector .arrow-track.right .pulse { animation: flyRight 1.6s ease-in-out infinite; }
+.connector .arrow-track.left  .pulse { animation: flyLeft  1.6s ease-in-out infinite; }
 
 .connector .self-loop {
   text-align: center;
@@ -337,16 +412,16 @@ a { color: inherit; text-decoration: none; }
 }
 
 @keyframes flyRight {
-  0%   { left: 0%;   opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { left: calc(100% - 28px); opacity: 0; }
+  0%   { left: 0;   opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: calc(100% - 14px); opacity: 0; }
 }
 @keyframes flyLeft {
-  0%   { left: calc(100% - 28px); opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { left: 0%; opacity: 0; }
+  0%   { left: calc(100% - 14px); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: 0; opacity: 0; }
 }
 
 /* ----- detail card ----- */
@@ -547,6 +622,11 @@ a { color: inherit; text-decoration: none; }
   gap: 16px;
   flex-wrap: wrap;
 }
+.footer a {
+  color: var(--muted);
+  transition: color 180ms;
+}
+.footer a:hover { color: var(--a2a); }
 
 /* ----- shared ----- */
 

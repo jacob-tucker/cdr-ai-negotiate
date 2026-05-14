@@ -123,8 +123,8 @@ const STEPS: Step[] = [
     what: (
       <>
         Research Agent counters with a lower price. Data Owner checks it's
-        within its floor and accepts. The agreed price is{" "}
-        <b>guaranteed ≤ 1 IP</b>.
+        within its floor and accepts. The agreed price is always{" "}
+        <b>≤ the seller's max price</b>.
       </>
     ),
     outcome: (
@@ -203,11 +203,11 @@ const STEPS: Step[] = [
       "registerIpAsset (mints NFT + attaches PIL terms) + CDR allocate + write",
     what: (
       <>
-        Research Agent presents the <Kw p="ap2">AP2</Kw> mandate. Data Owner
-        verifies it, then in two on-chain actions:{" "}
-        <Kw p="story">registers a new IP asset</Kw> with commercial license
-        terms priced at the agreed amount, and creates a{" "}
-        <Kw p="cdr">CDR vault</Kw> gated by license-token ownership for that IP.
+        Research Agent shows its signed <Kw p="ap2">AP2</Kw> mandate. Data Owner
+        verifies it, then{" "}
+        <Kw p="story">registers a new Story IP asset</Kw> priced at the agreed
+        amount and creates a <Kw p="cdr">CDR vault</Kw> that only the license
+        holder can open.
       </>
     ),
     outcome: (
@@ -292,8 +292,9 @@ const STEPS: Step[] = [
     what: (
       <>
         Research Agent calls <Kw p="cdr">CDR.read</Kw> with its license token.{" "}
-        <Kw p="story">Story</Kw> validators verify ownership on-chain and
-        return TDH2 partial decryptions; the secret is recombined client-side.
+        <Kw p="story">Story</Kw> validators check ownership on-chain and each
+        return a piece of the key; the agent puts them back together to
+        decrypt.
       </>
     ),
     outcomeKind: "success",
@@ -407,10 +408,10 @@ export function Demo() {
         <div className={`chain-bar ${s.chain ? "active" : ""}`}>
           <div className="label">
             <span className="ind" />
-            Story L1 · Aeneid testnet
+            Story testnet
           </div>
           <div className="meta">
-            {s.chain ? s.chainNote : "idle · no on-chain action this step"}
+            {s.chain ? s.chainNote : "nothing happening on-chain this step"}
           </div>
         </div>
       </section>
@@ -437,10 +438,10 @@ export function Demo() {
 
 function Legend() {
   const items: { p: Proto; label: string; hint: string }[] = [
-    { p: "a2a", label: "A2A", hint: "agent ↔ agent comms" },
-    { p: "ap2", label: "AP2", hint: "Google's signed mandate" },
-    { p: "cdr", label: "CDR", hint: "encrypted-data vault" },
-    { p: "story", label: "Story", hint: "on-chain license + tx" },
+    { p: "a2a", label: "A2A", hint: "how the agents talk" },
+    { p: "ap2", label: "AP2", hint: "signed payment authorization" },
+    { p: "cdr", label: "CDR", hint: "encrypted data vault" },
+    { p: "story", label: "Story", hint: "on-chain license + payment" },
   ];
   return (
     <div className="legend">
@@ -477,7 +478,7 @@ function Connector({
     return (
       <div className="connector">
         <div className="chip-row">{chip}</div>
-        <div className="self-loop">internal · no message sent</div>
+        <div className="self-loop">agent acts on its own</div>
         <div className="method">{method}</div>
       </div>
     );
