@@ -9,25 +9,20 @@ Edit `.env` (copy from `.env.example`):
 - `DATA_OWNER_PRIVATE_KEY` — testnet wallet that will own the IP asset (needs IP for the registration tx + vault writes)
 - `RESEARCH_AGENT_PRIVATE_KEY` — testnet wallet that will buy the license (needs ≥ 1 IP)
 - `STORY_RPC_URL` — defaults to `https://aeneid.storyrpc.io`
+- `STORY_API_URL` — Story-API REST endpoint the CDR SDK queries for DKG state; defaults to the testnet endpoint
 
 Optional pricing knobs (all caps capped at 1 IP):
 
 - `SELLER_MIN_PRICE_IP` / `SELLER_MAX_PRICE_IP` — seller's quote range
 - `RESEARCH_MAX_BUDGET_IP` / `RESEARCH_COUNTER_FACTOR` — buyer's counter strategy
 
-## One-time setup
-
-The CDR SDK isn't on npm yet — clone it as a sibling of this repo and build it. The workspace's `pnpm.overrides` points `@piplabs/cdr-sdk` (and its two internal deps) at those built directories.
+## Setup
 
 ```bash
-# 1. Clone the CDR SDK as a sibling of this repo, then build it.
-git clone https://github.com/piplabs/cdr-sdk.git --branch 0.1.1 --depth 1 ../cdr-sdk
-( cd ../cdr-sdk && pnpm install && pnpm build )
-
-# 2. Install workspace deps.
+# Install dependencies (pulls @piplabs/cdr-sdk from npm).
 pnpm install
 
-# 3. Copy + fill .env.
+# Copy + fill .env.
 cp .env.example .env
 ```
 

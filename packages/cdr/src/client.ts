@@ -15,9 +15,14 @@ const aeneid = {
   rpcUrls: { default: { http: ["https://aeneid.storyrpc.io"] } },
 } as const;
 
+/** Story-API REST base URL the CDR SDK queries for DKG state. */
+const DEFAULT_API_URL = "http://172.192.41.96:1317";
+
 export interface CdrClientOptions {
   rpcUrl: string;
   privateKey?: Hex;
+  /** Defaults to `STORY_API_URL` env var, then the testnet endpoint. */
+  apiUrl?: string;
 }
 
 export async function makeCdrClient(opts: CdrClientOptions) {
@@ -40,6 +45,7 @@ export async function makeCdrClient(opts: CdrClientOptions) {
     network: "testnet",
     publicClient,
     walletClient,
+    apiUrl: opts.apiUrl ?? process.env.STORY_API_URL ?? DEFAULT_API_URL,
   });
 
   return { client, publicClient, walletClient };

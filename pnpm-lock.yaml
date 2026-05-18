@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@piplabs/cdr-sdk': file:../cdr-sdk/packages/sdk
-  '@piplabs/cdr-contracts': file:../cdr-sdk/packages/contracts
-  '@piplabs/cdr-crypto': file:../cdr-sdk/packages/crypto
-
 importers:
 
   .: {}
@@ -134,8 +129,8 @@ importers:
   packages/cdr:
     dependencies:
       '@piplabs/cdr-sdk':
-        specifier: file:../../../cdr-sdk/packages/sdk
-        version: file:../cdr-sdk/packages/sdk(viem@2.48.11(typescript@5.9.3))
+        specifier: ^0.2.1
+        version: 0.2.1(viem@2.48.11(typescript@5.9.3))
       viem:
         specifier: ^2.21.0
         version: 2.48.11(typescript@5.9.3)
@@ -557,16 +552,16 @@ packages:
     resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==}
     engines: {node: '>= 20.19.0'}
 
-  '@piplabs/cdr-contracts@file:../cdr-sdk/packages/contracts':
-    resolution: {directory: ../cdr-sdk/packages/contracts, type: directory}
+  '@piplabs/cdr-contracts@0.2.1':
+    resolution: {integrity: sha512-BJ/13DIErea+SKaubAKJp9TbB6v7pLjVvYzzVhfH+n93erjkYvv/UHor51A/7WTQerf7OAr79VXl9uC6m36xzA==}
     peerDependencies:
       viem: ^2.21
 
-  '@piplabs/cdr-crypto@file:../cdr-sdk/packages/crypto':
-    resolution: {directory: ../cdr-sdk/packages/crypto, type: directory}
+  '@piplabs/cdr-crypto@0.2.1':
+    resolution: {integrity: sha512-K8Gd0/HBqHUPmflmjMZUYCTc3ajuwpZfbWjFSJkS60AQPdh+bMKvyUDfy8Di1VnDHDDjv2L3xSCaYLlCIplmzQ==}
 
-  '@piplabs/cdr-sdk@file:../cdr-sdk/packages/sdk':
-    resolution: {directory: ../cdr-sdk/packages/sdk, type: directory}
+  '@piplabs/cdr-sdk@0.2.1':
+    resolution: {integrity: sha512-zKe9VWx/fq/ON062CQjz8tHfA9YH/Lsby/7qzIO15lvxgZci60OdpdFXTf8oFcAnndCQBNkrkum+Ao1OVhUsOg==}
     peerDependencies:
       '@filoz/synapse-sdk': '>=0.1'
       '@helia/unixfs': '>=4'
@@ -1337,21 +1332,21 @@ snapshots:
 
   '@noble/hashes@2.0.1': {}
 
-  '@piplabs/cdr-contracts@file:../cdr-sdk/packages/contracts(viem@2.48.11(typescript@5.9.3))':
+  '@piplabs/cdr-contracts@0.2.1(viem@2.48.11(typescript@5.9.3))':
     dependencies:
       viem: 2.48.11(typescript@5.9.3)
 
-  '@piplabs/cdr-crypto@file:../cdr-sdk/packages/crypto':
+  '@piplabs/cdr-crypto@0.2.1':
     dependencies:
       '@ethereumjs/rlp': 10.1.1
       '@noble/ciphers': 2.1.1
       '@noble/curves': 1.6.0
       '@noble/hashes': 2.0.1
 
-  '@piplabs/cdr-sdk@file:../cdr-sdk/packages/sdk(viem@2.48.11(typescript@5.9.3))':
+  '@piplabs/cdr-sdk@0.2.1(viem@2.48.11(typescript@5.9.3))':
     dependencies:
-      '@piplabs/cdr-contracts': file:../cdr-sdk/packages/contracts(viem@2.48.11(typescript@5.9.3))
-      '@piplabs/cdr-crypto': file:../cdr-sdk/packages/crypto
+      '@piplabs/cdr-contracts': 0.2.1(viem@2.48.11(typescript@5.9.3))
+      '@piplabs/cdr-crypto': 0.2.1
       viem: 2.48.11(typescript@5.9.3)
 
   '@scure/base@1.2.6': {}

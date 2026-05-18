@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@piplabs/cdr-sdk": "file:../../../cdr-sdk/packages/sdk",
+    "@piplabs/cdr-sdk": "^0.2.1",
     "viem": "^2.21.0"
   },
   "devDependencies": {
